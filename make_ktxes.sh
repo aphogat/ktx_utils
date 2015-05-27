@@ -172,8 +172,8 @@ for i in ${Fmt[@]}; do
 	elif [ "$i" = "ldrl" ]; then
 		switch="l"
 	else
-		decopts+=" -hdra"
-		encopts+=" -hdra"
+		decopts+=" -hdr"
+		encopts+=" -hdr"
 	fi
 
 	# Generate all the block configurations.

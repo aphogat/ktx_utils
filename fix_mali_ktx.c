@@ -29,12 +29,16 @@ main(int argc, char* argv[])
 #define GL_RGB16F                         	0x881B
 #define GL_SRGB8_ALPHA8                   	0x8C43
 
-	uint32_t gl_rgb16f = GL_RGB16F;
+	uint32_t d_hdr[5] = {GL_HALF_FLOAT,
+				2,
+				GL_RGB,
+				GL_RGB16F,
+				GL_RGB};
 
 	uint32_t d_linear[5] = {GL_HALF_FLOAT,
 				2,
 				GL_RGBA,
-				GL_RGBA16F, 
+				GL_RGBA16F,
 				GL_RGBA};
 
 	uint32_t d_srgb[5] = {GL_UNSIGNED_BYTE,
@@ -45,9 +49,9 @@ main(int argc, char* argv[])
 
 	uint32_t *packet = NULL;
 	if (hdr) {
-		packet = &gl_rgb16f;
-		fseek(file, 7*sizeof(uint32_t), SEEK_SET); // glInternalFormat
-		fwrite(packet, sizeof(uint32_t), 1, file);
+		packet = d_hdr;
+		fseek(file, 4*sizeof(uint32_t), SEEK_SET); // glType
+		fwrite(packet, 5*sizeof(uint32_t), 1, file);
 		puts("HDR");
 	} else if (unorm8s) {
 		packet = d_srgb;
