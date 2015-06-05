@@ -69,7 +69,7 @@ main(int argc, char* argv[])
 	if (file != NULL)
 		fclose(file);
 
-	return;
+	return 0;
 }
 
 

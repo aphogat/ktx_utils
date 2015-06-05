@@ -161,7 +161,7 @@ done
 # * Compressed vs decompressed
 for i in ${Fmt[@]}; do
 	switch="" # HDR by default
-	decopts="-veryfast"
+	decopts=""
 	encopts="-veryfast"
 	astc_fmt_array_offset=0
 	if [ "$i" = "ldrs" ]; then
@@ -209,7 +209,7 @@ for i in ${Fmt[@]}; do
 			# Create a KTX from the ASTC.
 			$encoder -d$switch $outFileA $outFileK $decopts > /dev/null
 			if [ ! -e "$outFileK" ]; then
-				echo "KTX (RGB) file not created! $outFileA"
+				echo "KTX (RGB) file not created! $outFileK"
 				echo "$encoder -d$switch $outFileA $outFileK $decopts > /dev/null"
 				failed=1
 				break
