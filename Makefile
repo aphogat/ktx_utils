@@ -9,7 +9,7 @@ default: gen_mipmaps.c fix_mali_ktx.c gen_ktx.c
 	gcc -g gen_ktx.c -o gen_ktx -lktx
 
 ktxes:
-	./make_ktxes.sh waffles.jpg
+	./make_ktxes.sh waffles.png
 
 test:
 	ninja -C ~/repos/piglit2

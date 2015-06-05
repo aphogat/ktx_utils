@@ -129,7 +129,7 @@ img_h=`identify -format "%[fx:h]" $1`
 for lod in $(seq 0 $MAX_LEVEL); do
 
 	# Resize the image for current level of detail (LOD).
-	convert ${inFileHead}.jpg"[${img_w}x${img_h}!]" ${inFileHead}-${lod}.jpg
+	convert -define png:preserve-colormap=true ${inFileHead}.png"[${img_w}x${img_h}!]" ${inFileHead}-${lod}.png
 
 	# Stop generating miplevels when reaching dimensions 1x1.
 	echo "LOD-$lod dimensions are: ${img_w}x${img_h}"
@@ -189,7 +189,7 @@ for i in ${Fmt[@]}; do
 		for lod in $(seq 0 $MAX_LEVEL); do
 
 			# Choose the right base file
-			inFile=${inFileHead}-${lod}.jpg
+			inFile=${inFileHead}-${lod}.png
 
 			# Setup output files
 			outFile=${outFileHead}-$lod
@@ -250,5 +250,5 @@ done
 
 # Delete each level of detail
 for lod in $(seq 0 $MAX_LEVEL); do
-	rm ${inFileHead}-${lod}.jpg
+	rm ${inFileHead}-${lod}.png
 done
