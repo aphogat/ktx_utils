@@ -124,42 +124,26 @@ decompressed_dir=../decompressed
 inFileHead=${1%%.*}
 img_w=`identify -format "%[fx:w]" $1`
 img_h=`identify -format "%[fx:h]" $1`
+format=${2}
 
-# Generate all miplevels from the source image
-for lod in $(seq 0 $MAX_LEVEL); do
-
-	# Resize the image for current level of detail (LOD).
-	convert -define png:preserve-colormap=true ${inFileHead}.png"[${img_w}x${img_h}!]" ${inFileHead}-${lod}.png
-
-	# Stop generating miplevels when reaching dimensions 1x1.
-	echo "LOD-$lod dimensions are: ${img_w}x${img_h}"
-	if [ $img_w -eq 1 -a $img_h -eq 1 ]; then
-		MAX_LEVEL=$lod
-		break
-	fi
-
-	# Generate next LOD dimensions.
+# Function definitions
+function minify {
+	img_w=$1
 	if [ $(($img_w >> 1)) -eq 0 ]; then
 		img_w=1
 	else
 		img_w=$(($img_w >> 1))
 	fi
-		
-	if [ $(($img_h >> 1)) -eq 0 ]; then
-		img_h=1
-	else
-		img_h=$(($img_h >> 1))
-	fi
-
-done
-
+	echo $img_w
+}
 
 # Generate mipmapped KTXs for each configuration combination:
 # * HDR, LDR-SRGB, LDR-LINEAR
 # * Blocks from 4x4 to 12x12
 # * LODs specific to starting image size
 # * Compressed vs decompressed
-for i in ${Fmt[@]}; do
+function create_ktx_for_fmt {
+	i=$1
 	switch="" # HDR by default
 	decopts=""
 	encopts="-veryfast"
@@ -245,8 +229,38 @@ for i in ${Fmt[@]}; do
 			rm -rf $outDirC $outDirD
 		fi
 	done
-		
+}
+
+
+# MAIN
+# Generate all miplevels from the source image
+for lod in $(seq 0 $MAX_LEVEL); do
+
+	# Resize the image for current level of detail (LOD).
+	convert -define png:preserve-colormap=true ${inFileHead}.png"[${img_w}x${img_h}!]" ${inFileHead}-${lod}.png
+	echo "LOD-$lod dimensions are: ${img_w}x${img_h}"
+
+	# Stop generating miplevels when reaching dimensions 1x1.
+	if [ $img_w -eq 1 -a $img_h -eq 1 ]; then
+		MAX_LEVEL=$lod
+		break
+	fi
+
+	# Generate next LOD dimensions.
+	img_w=$(minify $img_w)
+	img_h=$(minify $img_h)
 done
+
+
+
+# Generate a specific format or all formats
+if [ -n "$format" ]; then
+	create_ktx_for_fmt $format
+else 
+	for i in ${Fmt[@]}; do
+	       create_ktx_for_fmt $i
+	done
+fi
 
 # Delete each level of detail
 for lod in $(seq 0 $MAX_LEVEL); do
