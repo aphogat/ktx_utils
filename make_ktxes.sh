@@ -122,6 +122,7 @@ decompressed_dir=../decompressed
 
 # Input-based variables
 inFileHead=${1%%.*}
+inFileExt=${1##$inFileHead}
 img_w=`identify -format "%[fx:w]" $1`
 img_h=`identify -format "%[fx:h]" $1`
 format=${2}
@@ -173,7 +174,7 @@ function create_ktx_for_fmt {
 		for lod in $(seq 0 $MAX_LEVEL); do
 
 			# Choose the right base file
-			inFile=${inFileHead}-${lod}.png
+			inFile=${inFileHead}-${lod}$inFileExt
 
 			# Setup output files
 			outFile=${outFileHead}-$lod
@@ -237,7 +238,8 @@ function create_ktx_for_fmt {
 for lod in $(seq 0 $MAX_LEVEL); do
 
 	# Resize the image for current level of detail (LOD).
-	convert -define png:preserve-colormap=true ${inFileHead}.png"[${img_w}x${img_h}!]" ${inFileHead}-${lod}.png
+	lod_out=${inFileHead}-${lod}$inFileExt
+	convert -define png:preserve-colormap=true -alpha set ${inFileHead}$inFileExt"[${img_w}x${img_h}!]" $lod_out
 	echo "LOD-$lod dimensions are: ${img_w}x${img_h}"
 
 	# Stop generating miplevels when reaching dimensions 1x1.
@@ -264,5 +266,5 @@ fi
 
 # Delete each level of detail
 for lod in $(seq 0 $MAX_LEVEL); do
-	rm ${inFileHead}-${lod}.png
+	rm ${inFileHead}-${lod}$inFileExt
 done
