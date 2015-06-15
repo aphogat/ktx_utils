@@ -200,11 +200,6 @@ function create_ktx_for_fmt {
 				break
 			fi
 
-			# Mali-decompressed HDR ASTCs have the wrong glInternalFormat; correct this.
-			if [ "$i" = "hdr" ]; then
-				$ktx_fix $outFileK > /dev/null
-			fi
-
 			# Wrap the compressed ASTC in a KTX.
 			$ktx_gen $outFileA $outFileCK ${ASTC_2D_Enum[($n + $astc_fmt_array_offset)]} > /dev/null
 			if [ ! -e "$outFileCK" ]; then
@@ -221,9 +216,21 @@ function create_ktx_for_fmt {
 		# Generate a mipmap from all the miplevel KTXs.
 		if [ $failed -eq 0 ]; then
 			$mip_gen $outDirC/ ../${outFileHead}.ktx
-			$mip_gen $outDirD/ ../${outFileHead}.ktx
 			if [ ! -e "$outDirC/../${outFileHead}.ktx" ]; then
 				echo "$mip_gen $outDirC/ ${inFileHead}.ktx"
+				rm $outDirC/${outFileHead}.ktx
+			fi
+
+			$mip_gen $outDirD/ ../${outFileHead}.ktx
+			if [ ! -e "$outDirD/../${outFileHead}.ktx" ]; then
+				echo "$mip_gen $outDirD/ ${inFileHead}.ktx"
+				rm $outDirD/${outFileHead}.ktx
+			fi
+
+			# Mali-decompressed sRGB & HDR ASTCs have the wrong glInternalFormat; correct this.
+			if [ "$i" = "hdr" -o "$i" = "ldrs" ]; then
+				$ktx_fix $outDirD/../${outFileHead}.ktx > /dev/null
+				#echo "$ktx_fix $outDirD/../${outFileHead}.ktx"
 			fi
 
 			# Delete the miplevels KTXs.

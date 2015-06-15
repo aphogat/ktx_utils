@@ -28,6 +28,7 @@ main(int argc, char* argv[])
 #define GL_RGBA16F                        	0x881A
 #define GL_RGB16F                         	0x881B
 #define GL_SRGB8_ALPHA8                   	0x8C43
+#define GL_SRGB8                          	0x8C41
 
 	uint32_t d_hdr[5] = {GL_HALF_FLOAT,
 				2,
