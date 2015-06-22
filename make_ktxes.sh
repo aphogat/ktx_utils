@@ -110,7 +110,7 @@ Blk=(
 )
 
 # Executables
-encoder=./astcenc
+encoder=./astc-encoder/Source/astcenc
 ktx_fix=./fix_mali_ktx
 ktx_gen=./gen_ktx
 mip_gen=./gen_mipmaps
