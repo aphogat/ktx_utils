@@ -120,6 +120,7 @@ mip_gen=./gen_mipmaps
 MAX_LEVEL=100
 compressed_dir=../compressed
 decompressed_dir=../decompressed
+failed=0
 
 # Input-based variables
 inFileHead=${1%%.*}
@@ -129,6 +130,17 @@ img_h=`identify -format "%[fx:h]" $1`
 format=${2}
 
 # Function definitions
+function run_cmd {
+   cmd=$1
+   output=$2
+   eval $cmd
+   if [ ! -e "$output" ]; then
+      echo $cmd
+      echo "File not created: $output"
+      failed=1
+   fi
+}
+
 function minify {
 	img_w=$1
 	if [ $(($img_w >> 1)) -eq 0 ]; then
@@ -164,7 +176,6 @@ function create_ktx_for_fmt {
 
 	# Generate all the block configurations.
 	for n in $(seq 0 13); do
-		failed=0
 		blk=${Blk[$n]}
 		outFileHead=${inFileHead}-$blk
 		outDirC=$compressed_dir/$i/$blk
@@ -184,31 +195,22 @@ function create_ktx_for_fmt {
 			outFileK=$outDirD/${outFile}.ktx
 
 			# Create an ASTC from the input file.
-			$encoder -c$switch $inFile $outFileA $blk $encopts > /dev/null
-			if [ ! -e "$outFileA" ]; then
-				echo "ASTC file not created! $outFileA"
-				echo "$encoder -c$switch $inFile $outFileA $blk $encopts > /dev/null"
-				failed=1
-				break
-			fi
+         run_cmd "$encoder -c$switch $inFile $outFileA $blk $encopts > /dev/null" $outFileA
+         if [ $failed -eq 1 ]; then
+            break
+         fi
 
 			# Create a KTX from the ASTC.
-			$encoder -d$switch $outFileA $outFileK $decopts > /dev/null
-			if [ ! -e "$outFileK" ]; then
-				echo "KTX (RGB) file not created! $outFileK"
-				echo "$encoder -d$switch $outFileA $outFileK $decopts > /dev/null"
-				failed=1
-				break
-			fi
+         run_cmd "$encoder -d$switch $outFileA $outFileK $decopts > /dev/null" $outFileK
+         if [ $failed -eq 1 ]; then
+            break
+         fi
 
 			# Wrap the compressed ASTC in a KTX.
-			$ktx_gen $outFileA $outFileCK ${ASTC_2D_Enum[($n + $astc_fmt_array_offset)]} > /dev/null
-			if [ ! -e "$outFileCK" ]; then
-				echo "KTX (ASTC) file not created! $outFileA"
-				echo "$ktx_gen $outFileA $outFileCK ${ASTC_2D_Enum[($n + $astc_fmt_array_offset)]} > /dev/null"
-				failed=1
-				break
-			fi
+         run_cmd "$ktx_gen $outFileA $outFileCK ${ASTC_2D_Enum[($n + $astc_fmt_array_offset)]} > /dev/null" $outFileCK
+         if [ $failed -eq 1 ]; then
+            break
+         fi
 
 			# Delete the ASTC.
 			rm $outFileA
@@ -216,17 +218,15 @@ function create_ktx_for_fmt {
 
 		# Generate a mipmap from all the miplevel KTXs.
 		if [ $failed -eq 0 ]; then
-			$mip_gen $outDirC/ ../${outFileHead}.ktx
-			if [ ! -e "$outDirC/../${outFileHead}.ktx" ]; then
-				echo "$mip_gen $outDirC/ ${inFileHead}.ktx"
+         run_cmd "$mip_gen $outDirC/ ../${outFileHead}.ktx" $outDirC/../${outFileHead}.ktx
+         if [ $failed -eq 1 ]; then
 				rm $outDirC/${outFileHead}.ktx
-			fi
+         fi
 
-			$mip_gen $outDirD/ ../${outFileHead}.ktx
-			if [ ! -e "$outDirD/../${outFileHead}.ktx" ]; then
-				echo "$mip_gen $outDirD/ ${inFileHead}.ktx"
+         run_cmd "$mip_gen $outDirD/ ../${outFileHead}.ktx" $outDirD/../${outFileHead}.ktx
+         if [ $failed -eq 1 ]; then
 				rm $outDirD/${outFileHead}.ktx
-			fi
+         fi
 
 			# Mali-decompressed sRGB & HDR ASTCs have the wrong glInternalFormat; correct this.
 			if [ "$i" = "hdr" -o "$i" = "ldrs" ]; then
