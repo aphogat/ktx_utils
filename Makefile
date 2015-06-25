@@ -7,6 +7,7 @@ default: gen_mipmaps.c fix_mali_ktx.c gen_ktx.c
 	gcc -g gen_mipmaps_man.c -o gen_mipmaps_man -L ~/repos/mesa/lib -lGL -lwaffle-1 -lktx
 	gcc -g fix_mali_ktx.c -o fix_mali_ktx -lktx -L ~/repos/mesa/lib -lGL
 	gcc -g gen_ktx.c -o gen_ktx -lktx
+	make -C astc-encoder/Source
 
 ktxes:
 	./make_ktxes.sh waffles.jpg
