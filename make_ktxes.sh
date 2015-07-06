@@ -261,6 +261,13 @@ for lod in $(seq 0 $MAX_LEVEL); do
 	img_h=$(minify $img_h)
 done
 
+# Change the hue of each miplevel
+for lod in $(seq 0 $MAX_LEVEL); do
+	lod_out=${inFileHead}-${lod}$inFileExt
+   percent=$( echo "scale = 4; a = $lod*200/$MAX_LEVEL + 100; if (a < 200) a else a - 200" | bc )
+	convert -modulate 100,100,$percent $lod_out $lod_out
+done
+
 
 
 # Generate a specific format or all formats
