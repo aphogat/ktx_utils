@@ -14,11 +14,11 @@ ktxes:
 
 test:
 	ninja -C ~/repos/piglit2
-	MESA_DEBUG=1 ~/repos/piglit2/bin/oes_compressed_astc-miptree hdr
+	MESA_DEBUG=1 ~/repos/piglit2/bin/khr_compressed_astc-miptree_gl
 
 debug:
 	ninja -C ~/repos/piglit2
-	MESA_DEBUG=1 gdb --args ~/repos/piglit2/bin/oes_compressed_astc-miptree ldr
+	MESA_DEBUG=1 gdb --args ~/repos/piglit2/bin/khr_compressed_astc-miptree_gl
 
 clean:
 	cd ..
