@@ -4,58 +4,10 @@
 #include <string.h>
 #include <sys/types.h>
 #include <dirent.h>
+#include <assert.h>
 
 #include <waffle-1/waffle.h>
 #include "piglit_ktx.h"
-
-/* This process requires that we construct blobs of LOD0 images, LOD1, etc
-and pass those in as images[] for libktx */
-
-GLint
-_mesa_components_in_format(GLenum format)
-{
-   switch (format) {
-
-   case GL_RGB:
-   case GL_BGR:
-      return 3;
-
-   case GL_RGBA:
-   case GL_BGRA:
-      return 4;
-
-   default:
-      return -1;
-   }
-}
-
-GLint
-_mesa_bytes_per_pixel(GLenum format, GLenum type)
-{
-   GLint comps = _mesa_components_in_format(format);
-   if (comps < 0)
-      return -1;
-
-   switch (type) {
-   case GL_BYTE:
-   case GL_UNSIGNED_BYTE:
-      return comps * sizeof(GLubyte);
-   case GL_SHORT:
-   case GL_UNSIGNED_SHORT:
-      return comps * sizeof(GLshort);
-   case GL_INT:
-   case GL_UNSIGNED_INT:
-      return comps * sizeof(GLint);
-   case GL_FLOAT:
-      return comps * sizeof(GLfloat);
-   case GL_HALF_FLOAT:
-      return comps * sizeof(GLhalf);
-   default:
-      return -1;
-   }
-}
-
-
 
 
 int
@@ -107,6 +59,20 @@ void make_context()
 	ctx = waffle_context_create(config, NULL);
 	waffle_make_current(dpy, window, ctx);
 }
+
+struct piglit_ktx {
+	struct piglit_ktx_info info;
+
+	/** \brief The raw KTX data. */
+	void *data;
+
+	/**
+	 * \brief Array of images.
+	 *
+	 * Array length is piglit_ktx_info::num_images.
+	 */
+	struct piglit_ktx_image *images;
+};
 
 /* Accepts the mipmap dir, the output filename */
 int
@@ -161,29 +127,30 @@ main(int argc, char *argv[])
       printf("%s\n", cur_file);
 
 		/* Read in the files into memory */
-      if (cur_lev == 0) {
+      if (cur_lev == 0) 
          files[cur_img] = piglit_ktx_read_file(cur_file);
-      }
 
 		/* Get level size */
       level_size += piglit_ktx_get_image(files[cur_img], cur_lev, 0)->size;
      }
-      printf("Level %d size is %d\n", cur_lev, level_size);
 
       /* Create the texture array */
 		img_info[cur_lev].size = level_size;
 		img_info[cur_lev].data = (char*) malloc(level_size);
       int next_offset = 0;
+
      for (cur_img = 0; cur_img < imgs; ++cur_img) {
-      const struct piglit_ktx_image* pimg = piglit_ktx_get_image(files[cur_img], cur_lev, 0);
-       memcpy(img_info[cur_lev].data + next_offset, pimg->data, pimg->size);
-      next_offset += pimg->size;
+         const struct piglit_ktx_image* pimg = piglit_ktx_get_image(files[cur_img], cur_lev, 0);
+         memcpy(img_info[cur_lev].data + next_offset, pimg->data, pimg->size);
+         next_offset += pimg->size;
+         printf("Image %d size is %d, expected %d\n", cur_img, pimg->size, (files[cur_img]->info.pixel_width >> cur_lev)* (files[cur_img]->info.pixel_height >> cur_lev)*6);
       }
+
    }
 
 	/* Write memory object to file */
 	KTX_error_code kec;
-	kec = ktxWriteKTXN(filename, &tex_info, 0, NULL, miplevels, img_info);
+	kec = ktxWriteKTXN(filename, &tex_info, 0, NULL, imgs, img_info);
 	printf("%s - %s\n", filename, ktxErrorString(kec));
 
 	/* Cleanup */
