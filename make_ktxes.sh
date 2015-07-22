@@ -166,8 +166,6 @@ function create_ktx_for_fmt {
 	if [ "$i" = "ldrs" ]; then
 		switch="s"
 		astc_fmt_array_offset=14
-		#encopts+=" -srgb"
-		#decopts+=" -srgb"
 	elif [ "$i" = "ldrl" ]; then
 		switch="l"
 	else
@@ -250,7 +248,7 @@ for lod in $(seq 0 $MAX_LEVEL); do
    # Change the hue of each miplevel
 	lod_out=${inFileHead}-${lod}$inFileExt
    percent=$( echo "scale = 4; a = $lod*200/$MAX_LEVEL + 100; if (a < 200) a else a - 200" | bc )
-	convert -define png:preserve-colormap=true -alpha set -modulate 100,100,$percent ${inFileHead}$inFileExt"[${img_w}x${img_h}!]" $lod_out
+	convert -modulate 100,100,$percent ${inFileHead}$inFileExt"[${img_w}x${img_h}!]" $lod_out
 	echo "LOD-$lod dimensions are: ${img_w}x${img_h}"
 
 	# Generate next LOD dimensions.
