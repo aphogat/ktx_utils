@@ -117,7 +117,6 @@ ktx_gen=./gen_ktx
 mip_gen=./gen_mipmaps
 
 # Global variables
-MAX_LEVEL=100
 compressed_dir=../compressed
 decompressed_dir=../decompressed
 failed=0
@@ -128,6 +127,8 @@ inFileExt=${1##$inFileHead}
 img_w=`identify -format "%[fx:w]" $1`
 img_h=`identify -format "%[fx:h]" $1`
 format=${2}
+max_dim=$(( $img_w < $img_h ? $img_h : $img_w ))
+MAX_LEVEL=`echo "a=l($max_dim)/l(2); scale=0; a/1" | bc -l`
 
 # Function definitions
 function run_cmd {
@@ -246,28 +247,16 @@ function create_ktx_for_fmt {
 for lod in $(seq 0 $MAX_LEVEL); do
 
 	# Resize the image for current level of detail (LOD).
+   # Change the hue of each miplevel
 	lod_out=${inFileHead}-${lod}$inFileExt
-	convert -define png:preserve-colormap=true -alpha set ${inFileHead}$inFileExt"[${img_w}x${img_h}!]" $lod_out
+   percent=$( echo "scale = 4; a = $lod*200/$MAX_LEVEL + 100; if (a < 200) a else a - 200" | bc )
+	convert -define png:preserve-colormap=true -alpha set -modulate 100,100,$percent ${inFileHead}$inFileExt"[${img_w}x${img_h}!]" $lod_out
 	echo "LOD-$lod dimensions are: ${img_w}x${img_h}"
-
-	# Stop generating miplevels when reaching dimensions 1x1.
-	if [ $img_w -eq 1 -a $img_h -eq 1 ]; then
-		MAX_LEVEL=$lod
-		break
-	fi
 
 	# Generate next LOD dimensions.
 	img_w=$(minify $img_w)
 	img_h=$(minify $img_h)
 done
-
-# Change the hue of each miplevel
-for lod in $(seq 0 $MAX_LEVEL); do
-	lod_out=${inFileHead}-${lod}$inFileExt
-   percent=$( echo "scale = 4; a = $lod*200/$MAX_LEVEL + 100; if (a < 200) a else a - 200" | bc )
-	convert -modulate 100,100,$percent $lod_out $lod_out
-done
-
 
 
 # Generate a specific format or all formats
