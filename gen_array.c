@@ -146,12 +146,12 @@ main(int argc, char *argv[])
 
       /* Create the texture array */
 		img_info[cur_lev].size = expt*imgs;
-		img_info[cur_lev].data = (char*) malloc(level_size);
+		img_info[cur_lev].data = (char*) malloc(expt*imgs);
 
      for (cur_img = 0; cur_img < imgs; ++cur_img) {
          glBindTexture(GL_TEXTURE_2D, tex[cur_img]);
          glGetTexImage(GL_TEXTURE_2D, cur_lev, tex_info.glFormat, tex_info.glType,
-                        img_info[cur_lev].data);
+                        img_info[cur_lev].data + cur_img*expt);
       }
 
    }
