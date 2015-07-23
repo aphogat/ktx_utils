@@ -33,7 +33,7 @@ void make_context()
 	};
 
 	const int32_t config_attrs[] = {
-	WAFFLE_CONTEXT_API,         WAFFLE_CONTEXT_OPENGL_ES2,
+	WAFFLE_CONTEXT_API,         WAFFLE_CONTEXT_OPENGL,
 	WAFFLE_RED_SIZE,            8,
 	WAFFLE_BLUE_SIZE,           8,
 	WAFFLE_GREEN_SIZE,          8,
@@ -48,8 +48,8 @@ void make_context()
 	dpy = waffle_display_connect(NULL);
 
 	// Exit if OpenGL ES2 is unsupported.
-	if (!waffle_display_supports_context_api(dpy, WAFFLE_CONTEXT_OPENGL_ES2)
-		|| !waffle_dl_can_open(WAFFLE_DL_OPENGL_ES2))
+	if (!waffle_display_supports_context_api(dpy, WAFFLE_CONTEXT_OPENGL)
+		|| !waffle_dl_can_open(WAFFLE_DL_OPENGL))
 	{
 		exit(EXIT_FAILURE);
 	}
@@ -118,7 +118,10 @@ main(int argc, char *argv[])
 
    int cur_lev;
 	int cur_img;
+   int w, h, expt;
    struct piglit_ktx* files[imgs];
+   GLuint tex[imgs];
+   glGenTextures(imgs, tex);
    for (cur_lev = 0; cur_lev < miplevels; ++cur_lev) {
      int level_size = 0;
      for (cur_img = 0; cur_img < imgs; ++cur_img) {
@@ -127,23 +130,28 @@ main(int argc, char *argv[])
       printf("%s\n", cur_file);
 
 		/* Read in the files into memory */
-      if (cur_lev == 0) 
+      if (cur_lev == 0) {
+         GLenum my_gl_error;
          files[cur_img] = piglit_ktx_read_file(cur_file);
+         piglit_ktx_load_texture(files[cur_img], &tex[cur_img], &my_gl_error);
+      }
+         
 
 		/* Get level size */
+         w = (files[cur_img]->info.pixel_width >> cur_lev) ? (files[cur_img]->info.pixel_width >> cur_lev) : 1;
+         h = (files[cur_img]->info.pixel_height >> cur_lev) ? (files[cur_img]->info.pixel_height >> cur_lev) : 1;
+         expt = w*h*6;
       level_size += piglit_ktx_get_image(files[cur_img], cur_lev, 0)->size;
      }
 
       /* Create the texture array */
-		img_info[cur_lev].size = level_size;
+		img_info[cur_lev].size = expt*imgs;
 		img_info[cur_lev].data = (char*) malloc(level_size);
-      int next_offset = 0;
 
      for (cur_img = 0; cur_img < imgs; ++cur_img) {
-         const struct piglit_ktx_image* pimg = piglit_ktx_get_image(files[cur_img], cur_lev, 0);
-         memcpy(img_info[cur_lev].data + next_offset, pimg->data, pimg->size);
-         next_offset += pimg->size;
-         printf("Image %d size is %d, expected %d\n", cur_img, pimg->size, (files[cur_img]->info.pixel_width >> cur_lev)* (files[cur_img]->info.pixel_height >> cur_lev)*6);
+         glBindTexture(GL_TEXTURE_2D, tex[cur_img]);
+         glGetTexImage(GL_TEXTURE_2D, cur_lev, tex_info.glFormat, tex_info.glType,
+                        img_info[cur_lev].data);
       }
 
    }
