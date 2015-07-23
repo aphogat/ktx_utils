@@ -80,7 +80,7 @@ main(int argc, char *argv[])
 {
 	/* Get arguments */
 	char * filename = argv[1];
-	int miplevels = atoi(argv[2]);
+	int miplevels = atoi(argv[2]) + 1;
    int arg_offset = 3;
 	unsigned imgs = argc - arg_offset;
 
@@ -127,10 +127,10 @@ main(int argc, char *argv[])
      for (cur_img = 0; cur_img < imgs; ++cur_img) {
 
       char * cur_file = argv[cur_img+arg_offset];
-      printf("%s\n", cur_file);
 
 		/* Read in the files into memory */
       if (cur_lev == 0) {
+         printf("%s\n", cur_file);
          GLenum my_gl_error;
          files[cur_img] = piglit_ktx_read_file(cur_file);
          piglit_ktx_load_texture(files[cur_img], &tex[cur_img], &my_gl_error);

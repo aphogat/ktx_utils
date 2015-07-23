@@ -115,6 +115,7 @@ encoder=./astc-encoder/Source/astcenc
 ktx_fix=./fix_mali_ktx
 ktx_gen=./gen_ktx
 mip_gen=./gen_mipmaps
+arr_gen=./gen_array
 
 # Global variables
 compressed_dir=../compressed
@@ -237,6 +238,12 @@ function create_ktx_for_fmt {
 			rm -rf $outDirC $outDirD
 		fi
 	done
+
+   # Generate the 2D texture array
+   run_cmd "$arr_gen $decompressed_dir/$i/${inFileHead}.ktx $MAX_LEVEL `ls -vd $decompressed_dir/$i/* | grep ktx`" $decompressed_dir/$i/${inFileHead}.ktx
+   if [ $failed -eq 1 ]; then
+      rm $outDirD/${inFileHead}.ktx
+   fi
 }
 
 
