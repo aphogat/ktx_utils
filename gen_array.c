@@ -9,6 +9,50 @@
 #include <waffle-1/waffle.h>
 #include "piglit_ktx.h"
 
+GLint
+_mesa_components_in_format(GLenum format)
+{
+   switch (format) {
+
+   case GL_RGB:
+   case GL_BGR:
+      return 3;
+
+   case GL_RGBA:
+   case GL_BGRA:
+      return 4;
+
+   default:
+      return -1;
+   }
+}
+
+GLint
+_mesa_bytes_per_pixel(GLenum format, GLenum type)
+{
+   GLint comps = _mesa_components_in_format(format);
+   if (comps < 0)
+      return -1;
+
+   switch (type) {
+   case GL_BYTE:
+   case GL_UNSIGNED_BYTE:
+      return comps * sizeof(GLubyte);
+   case GL_SHORT:
+   case GL_UNSIGNED_SHORT:
+      return comps * sizeof(GLshort);
+   case GL_INT:
+   case GL_UNSIGNED_INT:
+      return comps * sizeof(GLint);
+   case GL_FLOAT:
+      return comps * sizeof(GLfloat);
+   case GL_HALF_FLOAT:
+      return comps * sizeof(GLhalf);
+   default:
+      return -1;
+   }
+}
+
 void make_context()
 {
 	/* Generate a context */
@@ -78,7 +122,7 @@ main(int argc, char *argv[])
 	make_context();
 
 	/* Structs used to write the final output */
-	KTX_image_info *img_info = (KTX_image_info*)malloc(imgs * sizeof(KTX_image_info));
+	KTX_image_info img_info[miplevels];
 	KTX_texture_info tex_info;
 
    /* Fill out final struct */
@@ -109,47 +153,52 @@ main(int argc, char *argv[])
    int cur_lev;
 	int cur_img;
    int w, h, expt;
-   struct piglit_ktx* files[imgs];
    GLuint tex[imgs];
    glGenTextures(imgs, tex);
-   for (cur_lev = 0; cur_lev < miplevels; ++cur_lev) {
+   glPixelStorei(GL_PACK_ALIGNMENT, 1);
+
 	/* Read in the files into memory */
-     for (cur_img = 0; cur_img < imgs; ++cur_img) {
-      if (cur_lev == 0) {
-         cur_file = argv[cur_img+arg_offset];
-         printf("%s\n", cur_file);
-         GLenum my_gl_error;
-         files[cur_img] = piglit_ktx_read_file(cur_file);
-         piglit_ktx_load_texture(files[cur_img], &tex[cur_img], &my_gl_error);
+   for (cur_img = 0; cur_img < imgs; ++cur_img) {
+      cur_file = argv[cur_img+arg_offset];
+      printf("%s\n", cur_file);
+      struct piglit_ktx* file = piglit_ktx_read_file(cur_file);
+      if (!piglit_ktx_load_texture(file, &tex[cur_img], NULL)) {
+         printf("bad stuff just happened\n");
+         return 1;
       }
-     }
+      w = file->info.pixel_width;
+      h = file->info.pixel_height;
+      piglit_ktx_destroy(file);
+   }
+
+   for (cur_lev = 0; cur_lev < miplevels; ++cur_lev) {
 		/* Get level size. All images have the same dimension */
-      w = files[0]->info.pixel_width;
-      h = files[0]->info.pixel_height;
-      w = w >> cur_lev ? w >> cur_lev : 1;
-      h = h >> cur_lev ? h >> cur_lev : 1;
-      expt = w*h*6;
+      printf("W: %d H: %d\n", w, h);
+      expt = w*h*_mesa_bytes_per_pixel(tex_info.glFormat, tex_info.glType);
 
       /* Create the texture array */
 		img_info[cur_lev].size = expt*imgs;
-		img_info[cur_lev].data = (char*) malloc(expt*imgs);
+		img_info[cur_lev].data = (GLubyte*) malloc(img_info[cur_lev].size);
 
      for (cur_img = 0; cur_img < imgs; ++cur_img) {
          glBindTexture(GL_TEXTURE_2D, tex[cur_img]);
          glGetTexImage(GL_TEXTURE_2D, cur_lev, tex_info.glFormat, tex_info.glType,
-                        img_info[cur_lev].data + cur_img*expt);
+                        &img_info[cur_lev].data[cur_img*expt]);
       }
+
+      w = w/2 ? w/2 : 1;
+      h = h/2 ? h/2 : 1;
 
    }
 
 	/* Write memory object to file */
 	KTX_error_code kec;
-	kec = ktxWriteKTXN(filename, &tex_info, 0, NULL, imgs, img_info);
+	kec = ktxWriteKTXN(filename, &tex_info, 0, NULL, miplevels, img_info);
 	printf("%s - %s\n", filename, ktxErrorString(kec));
 
 	/* Cleanup */
-   // for (cur_img = 0; cur_img < imgs; ++cur_img)
-   //   free(img_info[cur_img].data);
-   // free(img_info);
+   glDeleteTextures(imgs, tex);
+   for (cur_lev = 0; cur_lev < miplevels; ++cur_lev)
+      free(img_info[cur_lev].data);
 	return 0;
 }
