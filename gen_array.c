@@ -9,16 +9,6 @@
 #include <waffle-1/waffle.h>
 #include "piglit_ktx.h"
 
-
-int
-no_dot_output_filter (const struct dirent * dir_entity)
-{
-	return strlen(dir_entity->d_name) > 2 &&
-		strstr(dir_entity->d_name, "waffles.ktx") == NULL &&
-		strstr(dir_entity->d_name, ".ktx") != NULL &&
-		strstr(dir_entity->d_name, "swp") == NULL;
-}
-
 void make_context()
 {
 	/* Generate a context */
@@ -123,26 +113,22 @@ main(int argc, char *argv[])
    GLuint tex[imgs];
    glGenTextures(imgs, tex);
    for (cur_lev = 0; cur_lev < miplevels; ++cur_lev) {
-     int level_size = 0;
+	/* Read in the files into memory */
      for (cur_img = 0; cur_img < imgs; ++cur_img) {
-
-      char * cur_file = argv[cur_img+arg_offset];
-
-		/* Read in the files into memory */
       if (cur_lev == 0) {
+         cur_file = argv[cur_img+arg_offset];
          printf("%s\n", cur_file);
          GLenum my_gl_error;
          files[cur_img] = piglit_ktx_read_file(cur_file);
          piglit_ktx_load_texture(files[cur_img], &tex[cur_img], &my_gl_error);
       }
-         
-
-		/* Get level size */
-         w = (files[cur_img]->info.pixel_width >> cur_lev) ? (files[cur_img]->info.pixel_width >> cur_lev) : 1;
-         h = (files[cur_img]->info.pixel_height >> cur_lev) ? (files[cur_img]->info.pixel_height >> cur_lev) : 1;
-         expt = w*h*6;
-      level_size += piglit_ktx_get_image(files[cur_img], cur_lev, 0)->size;
      }
+		/* Get level size. All images have the same dimension */
+      w = files[0]->info.pixel_width;
+      h = files[0]->info.pixel_height;
+      w = w >> cur_lev ? w >> cur_lev : 1;
+      h = h >> cur_lev ? h >> cur_lev : 1;
+      expt = w*h*6;
 
       /* Create the texture array */
 		img_info[cur_lev].size = expt*imgs;
