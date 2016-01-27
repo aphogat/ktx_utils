@@ -192,7 +192,7 @@ main(int argc, char *argv[])
 				puts("malloc failed");
 			int offset = 0;
 			int offset2 = 0;
-			while (offset < lsize2) {
+			while (offset < *lsize) {
 				memcpy(ldata2 + offset2, *ldata+offset, 3);
 				ldata2[offset2+3] = 255;
 				offset+=3;
