@@ -167,11 +167,13 @@ img_h=`identify -format "%[fx:h]" $1`
 format=${2}
 max_dim=$(( $img_w < $img_h ? $img_h : $img_w ))
 MAX_LEVEL=`echo "a=l($max_dim)/l(2); scale=0; a/1" | bc -l`
+DEPTH=8
 
 # Function definitions
 function run_cmd {
    cmd=$1
    output=$2
+   echo $cmd
    eval $cmd
    if [ ! -e "$output" ]; then
       echo $cmd
@@ -192,18 +194,30 @@ function minify {
 
 # Generate mipmapped KTXs for each configuration combination:
 # * HDR, LDR-SRGB, LDR-LINEAR
-# * Blocks from 4x4 to 12x12
+# * Blocks from 4x4 to 12x12 for 2D
+# * Blocks from 3x3x3 to 6x6x6 for 3D
 # * LODs specific to starting image size
 # * Compressed vs decompressed
 function create_ktx_for_fmt {
 	i=$1
+	j=$2
 	switch="" # HDR by default
 	decopts=""
 	encopts="-veryfast"
 	astc_fmt_array_offset=0
+        blocks=13
+
+        if [ "$j" = "3D" ]; then
+                blocks=9
+        fi
+
 	if [ "$i" = "ldrs" ]; then
 		switch="s"
-		astc_fmt_array_offset=14
+	        if [ "$j" = "2D" ]; then
+		        astc_fmt_array_offset=14
+	        elif [ "$j" = "3D" ]; then
+		        astc_fmt_array_offset=10
+                fi
 	elif [ "$i" = "ldrl" ]; then
 		switch="l"
 	else
@@ -212,15 +226,30 @@ function create_ktx_for_fmt {
 	fi
 
 	# Generate all the block configurations.
-	for n in $(seq 0 13); do
-		blk=${Blk2d[$n]}
+	for n in $(seq 0 $blocks); do
+		depth=$DEPTH
+                if [ "$j" = "2D" ]; then
+		        blk=${Blk2d[$n]}
+                else
+		        blk=${Blk3d[$n]}
+                fi
+
 		outFileHead=${inFileHead}-$blk
-		outDirC=$compressed_dir/$i/$blk
-		outDirD=$decompressed_dir/$i/$blk
+		outDirC=$compressed_dir/$j/$i/$blk
+		outDirD=$decompressed_dir/$j/$i/$blk
 		mkdir -p $outDirD $outDirC
 
 		# Generate all the Level of Details
 		for lod in $(seq 0 $MAX_LEVEL); do
+			# Debug why do we get segfault with depth=1
+			if [ "$depth" = "1" ]; then
+				break;
+			fi
+
+			if [ "$j" = "3D" ]; then
+				encopts="-array $depth -veryfast"
+				depth=$((depth/2))
+			fi
 
 			# Choose the right base file
 			inFile=${inFileHead}-${lod}$inFileExt
@@ -243,44 +272,52 @@ function create_ktx_for_fmt {
                         break
                         fi
 
-			# Wrap the compressed ASTC in a KTX.
-                        run_cmd "$ktx_gen $outFileA $outFileCK ${ASTC_2D_Enum[($n + $astc_fmt_array_offset)]} > /dev/null" $outFileCK
+                        if [ "$j" = "2D" ]; then
+                                # Wrap the compressed ASTC in a KTX.
+                                run_cmd "$ktx_gen $outFileA $outFileCK ${ASTC_2D_Enum[($n + $astc_fmt_array_offset)]} > /dev/null" $outFileCK
+                        else
+                                # Wrap the compressed ASTC in a KTX.
+                                run_cmd "$ktx_gen $outFileA $outFileCK ${ASTC_3D_Enum[($n + $astc_fmt_array_offset)]} > /dev/null" $outFileCK
+                        fi
+
                         if [ $failed -eq 1 ]; then
                         break
                         fi
 
-                                # Delete the ASTC.
-                                rm $outFileA
-                        done
+                        # Delete the ASTC.
+                        rm $outFileA
+		done
 
-                        # Generate a mipmap from all the miplevel KTXs.
-                        if [ $failed -eq 0 ]; then
-                        run_cmd "$mip_gen $outDirC/ ../${outFileHead}.ktx" $outDirC/../${outFileHead}.ktx
-                        if [ $failed -eq 1 ]; then
-                                        rm $outDirC/${outFileHead}.ktx
-                        fi
+		# Generate a mipmap from all the miplevel KTXs.
+		if [ $failed -eq 0 ]; then
+		run_cmd "$mip_gen $outDirC/ ../${outFileHead}.ktx" $outDirC/../${outFileHead}.ktx
+		if [ $failed -eq 1 ]; then
+				rm $outDirC/${outFileHead}.ktx
+		fi
 
-                        run_cmd "$mip_gen $outDirD/ ../${outFileHead}.ktx" $outDirD/../${outFileHead}.ktx
-                        if [ $failed -eq 1 ]; then
-                                        rm $outDirD/${outFileHead}.ktx
-                        fi
+		run_cmd "$mip_gen $outDirD/ ../${outFileHead}.ktx" $outDirD/../${outFileHead}.ktx
+		if [ $failed -eq 1 ]; then
+				rm $outDirD/${outFileHead}.ktx
+		fi
 
-                                # Mali-decompressed sRGB & HDR ASTCs have the wrong glInternalFormat; correct this.
-                                if [ "$i" = "hdr" -o "$i" = "ldrs" ]; then
-                                        $ktx_fix $outDirD/../${outFileHead}.ktx > /dev/null
-                                        #echo "$ktx_fix $outDirD/../${outFileHead}.ktx"
-                                fi
+			# Mali-decompressed sRGB & HDR ASTCs have the wrong glInternalFormat; correct this.
+			if [ "$i" = "hdr" -o "$i" = "ldrs" ]; then
+				$ktx_fix $outDirD/../${outFileHead}.ktx > /dev/null
+				#echo "$ktx_fix $outDirD/../${outFileHead}.ktx"
+			fi
 
-                                # Delete the miplevels KTXs.
+			# Delete the miplevels KTXs.
                                 rm -rf $outDirC $outDirD
-                        fi
-                        done
+		fi
+	done
 
-                        # Generate the 2D texture array
-                        run_cmd "$arr_gen $decompressed_dir/$i/${inFileHead}.ktx $MAX_LEVEL `ls -vd $decompressed_dir/$i/* | grep ktx`" $decompressed_dir/$i/${inFileHead}.ktx
-                        if [ $failed -eq 1 ]; then
-                        rm $outDirD/${inFileHead}.ktx
-                        fi
+	if [ "$j" = "2D" ]; then
+		# Generate the 2D texture array
+		run_cmd "$arr_gen $decompressed_dir/$j/$i/${inFileHead}.ktx $MAX_LEVEL `ls -vd $decompressed_dir/$j/$i/* | grep ktx`" $decompressed_dir/$j/$i/${inFileHead}.ktx
+		if [ $failed -eq 1 ]; then
+		rm $outDirD/${inFileHead}.ktx
+		fi
+	fi
 }
 
 
@@ -294,7 +331,9 @@ for lod in $(seq 0 $MAX_LEVEL); do
         percent=$( echo "scale = 4; a = $lod*200/$MAX_LEVEL + 100; if (a < 200) a else a - 200" | bc )
 	convert -modulate 100,100,$percent ${inFileHead}$inFileExt"[${img_w}x${img_h}!]" $lod_out
 	echo "LOD-$lod dimensions are: ${img_w}x${img_h}"
-
+	for depth in $(seq 0 $DEPTH); do
+		cp $lod_out ${inFileHead}-${lod}_$depth$inFileExt
+	done
 	# Generate next LOD dimensions.
 	img_w=$(minify $img_w)
 	img_h=$(minify $img_h)
@@ -302,15 +341,23 @@ done
 
 
 # Generate a specific format or all formats
-if [ -n "$format" ]; then
-	create_ktx_for_fmt $format
-else 
-	for i in ${Fmt[@]}; do
-	       create_ktx_for_fmt $i
-	done
+if [ -n "$format" ] && [ -n "$dims" ]; then
+	create_ktx_for_fmt $format $dims
+else
+        for j in ${Dims[@]}; do
+                for i in ${Fmt[@]}; do
+                       create_ktx_for_fmt $i $j
+                done
+        done
 fi
 
 # Delete each level of detail
 for lod in $(seq 0 $MAX_LEVEL); do
 	rm ${inFileHead}-${lod}$inFileExt
+done
+
+for lod in $(seq 0 $MAX_LEVEL); do
+	for depth in $(seq 0 $DEPTH); do
+		rm ${inFileHead}-${lod}_$depth$inFileExt
+		done
 done
