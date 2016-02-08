@@ -28,7 +28,7 @@ format_ktx_header(astc_header* header, GLenum format, KTX_texture_info * kti)
 	kti->glBaseInternalFormat	= GL_RGBA;
 	kti->pixelWidth 		= get_val(header->xsize);
 	kti->pixelHeight 		= get_val(header->ysize);
-	kti->pixelDepth 		= get_val(header->zsize) - 1;
+	kti->pixelDepth 		= get_val(header->zsize) > 1 ? get_val(header->zsize) : 0;
 	kti->numberOfArrayElements 	= 0; // assuming array texture
 	kti->numberOfFaces 		= 1; // assuming not cubemap or cubemap array
 	kti->numberOfMipmapLevels 	= 1; // assuming only 1 miplevel
