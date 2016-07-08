@@ -148,7 +148,6 @@ Dims=(
 )
 
 # Executables
-encoder=./astc-encoder/Binary/Linux32/astcenc
 encoder=./astc-encoder/Source/astcenc
 ktx_fix=./fix_mali_ktx
 ktx_gen=./gen_ktx
