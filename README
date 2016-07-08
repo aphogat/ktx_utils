@@ -1,0 +1,6 @@
+How to build ?
+
+1. cd ktx_utils
+2. git clone https://github.com/ARM-software/astc-encoder.git
+3. Modify Makefile to point to the Mesa libs and libktx
+4. make
