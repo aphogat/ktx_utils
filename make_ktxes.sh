@@ -172,15 +172,15 @@ DEPTH=8
 
 # Function definitions
 function run_cmd {
-   cmd=$1
-   output=$2
-   echo $cmd
-   eval $cmd
-   if [ ! -e "$output" ]; then
-      echo $cmd
-      echo "File not created: $output"
-      failed=1
-   fi
+	cmd=$1
+	output=$2
+	echo $cmd
+	eval $cmd
+	if [ ! -e "$output" ]; then
+		echo $cmd
+		echo "File not created: $output"
+		failed=1
+	fi
 }
 
 function minify {
@@ -206,19 +206,19 @@ function create_ktx_for_fmt {
 	decopts=""
 	encopts="-veryfast"
 	astc_fmt_array_offset=0
-        blocks=13
+	blocks=13
 
-        if [ "$j" = "3D" ]; then
-                blocks=9
-        fi
+	if [ "$j" = "3D" ]; then
+		blocks=9
+	fi
 
 	if [ "$i" = "ldrs" ]; then
 		switch="s"
 		if [ "$j" = "2D" -o "$j" = "SLICED3D" ]; then
-		        astc_fmt_array_offset=14
-	        elif [ "$j" = "3D" ]; then
-		        astc_fmt_array_offset=10
-                fi
+			astc_fmt_array_offset=14
+		elif [ "$j" = "3D" ]; then
+			astc_fmt_array_offset=10
+		fi
 	elif [ "$i" = "ldrl" ]; then
 		switch="l"
 	else
@@ -231,9 +231,9 @@ function create_ktx_for_fmt {
 		depth=$DEPTH
 		if [ "$j" = "2D" -o "$j" = "SLICED3D" ]; then
 		        blk=${Blk2d[$n]}
-                else
+		else
 		        blk=${Blk3d[$n]}
-                fi
+		fi
 
 		outFileHead=${inFileHead}-$blk
 		outDirC=$compressed_dir/$j/$i/$blk
@@ -265,31 +265,31 @@ function create_ktx_for_fmt {
 			outFileK=$outDirD/${outFile}.ktx
 
 			# Create an ASTC from the input file.
-                        run_cmd "$encoder -c$switch $inFile $outFileA $blk $encopts > /dev/null" $outFileA
-                        if [ $failed -eq 1 ]; then
-                        break
-                        fi
+			run_cmd "$encoder -c$switch $inFile $outFileA $blk $encopts > /dev/null" $outFileA
+			if [ $failed -eq 1 ]; then
+				break
+			fi
 
 			# Create a KTX from the ASTC.
-                        run_cmd "$encoder -d$switch $outFileA $outFileK $decopts > /dev/null" $outFileK
-                        if [ $failed -eq 1 ]; then
-                        break
-                        fi
+			run_cmd "$encoder -d$switch $outFileA $outFileK $decopts > /dev/null" $outFileK
+			if [ $failed -eq 1 ]; then
+				break
+			fi
 
-                        if [ "$j" = "2D" -o "$j" = "SLICED3D" ]; then
-                                # Wrap the compressed ASTC in a KTX.
-                                run_cmd "$ktx_gen $outFileA $outFileCK ${ASTC_2D_Enum[($n + $astc_fmt_array_offset)]} > /dev/null" $outFileCK
-                        else
-                                # Wrap the compressed ASTC in a KTX.
-                                run_cmd "$ktx_gen $outFileA $outFileCK ${ASTC_3D_Enum[($n + $astc_fmt_array_offset)]} > /dev/null" $outFileCK
-                        fi
+			if [ "$j" = "2D" -o "$j" = "SLICED3D" ]; then
+				# Wrap the compressed ASTC in a KTX.
+				run_cmd "$ktx_gen $outFileA $outFileCK ${ASTC_2D_Enum[($n + $astc_fmt_array_offset)]} > /dev/null" $outFileCK
+			else
+				# Wrap the compressed ASTC in a KTX.
+				run_cmd "$ktx_gen $outFileA $outFileCK ${ASTC_3D_Enum[($n + $astc_fmt_array_offset)]} > /dev/null" $outFileCK
+			fi
 
-                        if [ $failed -eq 1 ]; then
-                        break
-                        fi
+			if [ $failed -eq 1 ]; then
+				break
+			fi
 
-                        # Delete the ASTC.
-                        rm $outFileA
+			# Delete the ASTC.
+			rm $outFileA
 		done
 
 		# Generate a mipmap from all the miplevel KTXs.
@@ -330,9 +330,9 @@ function create_ktx_for_fmt {
 for lod in $(seq 0 $MAX_LEVEL); do
 
 	# Resize the image for current level of detail (LOD).
-        # Change the hue of each miplevel
+	# Change the hue of each miplevel
 	lod_out=${inFileHead}-${lod}$inFileExt
-        percent=$( echo "scale = 4; a = $lod*200/$MAX_LEVEL + 100; if (a < 200) a else a - 200" | bc )
+	percent=$( echo "scale = 4; a = $lod*200/$MAX_LEVEL + 100; if (a < 200) a else a - 200" | bc )
 	convert -modulate 100,100,$percent ${inFileHead}$inFileExt"[${img_w}x${img_h}!]" $lod_out
 	echo "LOD-$lod dimensions are: ${img_w}x${img_h}"
 	for depth in $(seq 0 $DEPTH); do
@@ -348,11 +348,11 @@ done
 if [ -n "$format" ] && [ -n "$dims" ]; then
 	create_ktx_for_fmt $format $dims
 else
-        for j in ${Dims[@]}; do
-                for i in ${Fmt[@]}; do
-                       create_ktx_for_fmt $i $j
-                done
-        done
+	for j in ${Dims[@]}; do
+		for i in ${Fmt[@]}; do
+			create_ktx_for_fmt $i $j
+		done
+	done
 fi
 
 # Delete each level of detail
@@ -363,5 +363,5 @@ done
 for lod in $(seq 0 $MAX_LEVEL); do
 	for depth in $(seq 0 $DEPTH); do
 		rm ${inFileHead}-${lod}_$depth$inFileExt
-		done
+	done
 done
