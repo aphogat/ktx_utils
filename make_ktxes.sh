@@ -143,6 +143,7 @@ Fmt=(
 
 Dims=(
 	"2D"
+	"SLICED3D"
 	"3D"
 )
 
@@ -213,7 +214,7 @@ function create_ktx_for_fmt {
 
 	if [ "$i" = "ldrs" ]; then
 		switch="s"
-	        if [ "$j" = "2D" ]; then
+		if [ "$j" = "2D" -o "$j" = "SLICED3D" ]; then
 		        astc_fmt_array_offset=14
 	        elif [ "$j" = "3D" ]; then
 		        astc_fmt_array_offset=10
@@ -228,7 +229,7 @@ function create_ktx_for_fmt {
 	# Generate all the block configurations.
 	for n in $(seq 0 $blocks); do
 		depth=$DEPTH
-                if [ "$j" = "2D" ]; then
+		if [ "$j" = "2D" -o "$j" = "SLICED3D" ]; then
 		        blk=${Blk2d[$n]}
                 else
 		        blk=${Blk3d[$n]}
@@ -246,8 +247,11 @@ function create_ktx_for_fmt {
 				break;
 			fi
 
-			if [ "$j" = "3D" ]; then
+			if [ "$j" = "3D" -o "$j" = "SLICED3D" ]; then
 				encopts="-array $depth -veryfast"
+				if [ "$i" = "hdr" ]; then
+					encopts+=" -hdr"
+				fi
 				depth=$((depth/2))
 			fi
 
@@ -272,7 +276,7 @@ function create_ktx_for_fmt {
                         break
                         fi
 
-                        if [ "$j" = "2D" ]; then
+                        if [ "$j" = "2D" -o "$j" = "SLICED3D" ]; then
                                 # Wrap the compressed ASTC in a KTX.
                                 run_cmd "$ktx_gen $outFileA $outFileCK ${ASTC_2D_Enum[($n + $astc_fmt_array_offset)]} > /dev/null" $outFileCK
                         else
