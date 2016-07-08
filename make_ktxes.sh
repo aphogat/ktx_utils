@@ -156,8 +156,8 @@ mip_gen=./gen_mipmaps
 arr_gen=./gen_array
 
 # Global variables
-compressed_dir=../compressed
-decompressed_dir=../decompressed
+compressed_dir=compressed
+decompressed_dir=decompressed
 failed=0
 
 # Input-based variables

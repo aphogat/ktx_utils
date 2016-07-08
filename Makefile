@@ -22,6 +22,5 @@ debug:
 	MESA_DEBUG=1 gdb --args ~/repos/piglit2/bin/khr_compressed_astc-miptree_gl
 
 clean:
-	cd ..
 	git clean -df decompressed compressed
 
