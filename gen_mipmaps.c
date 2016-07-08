@@ -182,11 +182,13 @@ main(int argc, char *argv[])
 
 		/* Convert miplevel to the original image's format */
 		if (tex_info.glFormat != ltex_info.glFormat) {
+                       int ltexDepth = ltex_info.pixelDepth > 0 ? ltex_info.pixelDepth : 1;
 			printf("MIPLEVEL %d: Different glFormat!\ncomps: %d vs %d\n", cur_lev,
 					_mesa_components_in_format(tex_info.glFormat),
 					_mesa_components_in_format(ltex_info.glFormat));
 			/* Conversion step */
-			GLsizei lsize2 = ltex_info.pixelHeight * ltex_info.pixelWidth * _mesa_bytes_per_pixel(tex_info.glFormat, tex_info.glType) ;
+                       GLsizei lsize2 = ltex_info.pixelHeight * ltex_info.pixelWidth * ltexDepth *
+                                        _mesa_bytes_per_pixel(tex_info.glFormat, tex_info.glType) ;
 			GLubyte *ldata2 = (GLubyte*) malloc(lsize2);
 			if (ldata2 == NULL)
 				puts("malloc failed");
