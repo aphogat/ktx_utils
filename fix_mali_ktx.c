@@ -44,9 +44,9 @@ main(int argc, char* argv[])
 
 	uint32_t d_srgb[5] = {GL_UNSIGNED_BYTE,
 				1,
-				GL_RGB,
-				GL_SRGB8,
-				GL_RGB};
+				GL_RGBA,
+				GL_SRGB8_ALPHA8,
+				GL_RGBA};
 
 	uint32_t *packet = NULL;
 	if (hdr) {
